@@ -1,0 +1,78 @@
+import pandas as pd
+import streamlit as st
+import altair as alt
+
+# emojis: https://www.webfx.com/tools/emoji-cheat-sheet/
+st.set_page_config(page_title="FANG Financals", page_icon=":bar_chart:", layout="wide")
+
+@st.cache_data
+def get_data_from_excel(file_path):
+    df = pd.read_excel(file_path, sheet_name='FANG_DATA')
+    return df
+
+from pandas.tseries.offsets import DateOffset
+
+def preprocess_data(df):
+    df['Month'] = pd.to_datetime(df['Month'])
+    return df
+
+def create_chart(df, company, selected_metrics):
+    filtered_df = df[df["Company"] == company]
+    layers = []
+
+    colors = {
+        # You can customize the colors for each metric here
+    }
+
+    for metric in selected_metrics:
+        chart = alt.Chart(filtered_df).mark_bar().encode(
+             x=alt.X("Month:T", axis=alt.Axis(title='Month', labelAngle=-65, format='%m-%d-%Y'), 
+                scale=alt.Scale(paddingInner=0)),
+            y=alt.Y(f"{metric}:Q", axis=alt.Axis(title=f"{metric} (Mil)", format=",.1~f")),
+            color=alt.value(colors.get(metric, "#aec7e8"))
+        )
+        layers.append(chart)
+
+
+    final_chart = alt.layer(*layers).resolve_scale(y='independent')
+    return final_chart
+
+
+def main():
+    st.title("Financial Charts Comparison")
+
+    file_path = "/Users/ahmedshaker/Downloads/FANG_FS_1.xlsx"
+    df = get_data_from_excel(file_path)
+    df = preprocess_data(df)
+
+    metrics = ["Facebook DAU", "Facebook MAU", "Apple Products Rev", "Apple Services Rev", "TESLA Deliveries", "TESLA Production", "AMZN Product", "AMZN Services", "YouTube", "Google Search", "Revenue", "COGS", "OpEx", "Net Income"]
+
+    companies = df["Company"].unique()
+
+    left_sidebar, empty1, empty2, empty3, right_sidebar = st.columns([120, 10, 10, 10, 120])
+
+    company1 = left_sidebar.selectbox("Select Company 1", options=companies)
+    company2 = right_sidebar.selectbox("Select Company 2", options=companies)
+
+    st.sidebar.title("Select Metrics for Company 1")
+    selected_metrics1 = [metric for metric in metrics if st.sidebar.checkbox(f"{metric} - Company 1")]
+
+    st.sidebar.title("Select Metrics for Company 2")
+    selected_metrics2 = [metric for metric in metrics if st.sidebar.checkbox(f"{metric} - Company 2")]
+
+    if not selected_metrics1 and not selected_metrics2:
+        st.warning("Please select at least one metric for each company from the sidebar.")
+        return
+
+    chart1 = create_chart(df, company1, selected_metrics1).properties(width=500)
+    chart2 = create_chart(df, company2, selected_metrics2).properties(width=500)
+
+    chart_columns = st.columns([1, .1, .1, 1])
+    chart_columns[0].altair_chart(chart1, use_container_width=False)
+    chart_columns[3].altair_chart(chart2, use_container_width=False)
+
+if __name__ == "__main__":
+    main()
+
+
+
