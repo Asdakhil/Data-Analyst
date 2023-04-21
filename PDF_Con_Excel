@@ -1,0 +1,28 @@
+import os
+import pandas as pd
+from tabula import read_pdf  # Changed import statement
+
+# Input PDF file path
+file = "/Users/ahmedshaker/Downloads/Tesla_Q1_2023.pdf"
+
+# Read tables from the PDF
+pdf_data = read_pdf(file, pages=4, multiple_tables=True)  # Changed function call
+
+# Print the extracted tables
+for i, table in enumerate(pdf_data):
+    print(f"Table {i + 1}:")
+    print(table)
+
+# Output directory and file path
+output_folder = "/Users/ahmedshaker/Desktop/output"
+output_path = os.path.join(output_folder, "converted.csv")
+
+# Create the output folder if it doesn't exist
+if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
+
+# Save the first table from the extracted data as a CSV file
+pdf_data[0].to_csv(output_path, index=False)
+
+# Print a confirmation message with the output file path
+print(f"Data saved to {output_path}")
